@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoboNav — White-Line Following Robot Navigation</title>
+    <title>Path Guider — Robot Navigation</title>
+    <link rel="icon" href="favicon.png">
     <meta name="description"
         content="A smart dashboard for a White-Line Following Robot Navigation System using BFS pathfinding on a college campus map.">
 
@@ -158,14 +159,27 @@
                     </div>
 
                     <!-- Navigate Button -->
-                    <button id="navigateBtn" class="nav-button">
+                    <button id="navigateBtn" class="nav-button group disabled:opacity-75 disabled:cursor-not-allowed">
                         <span class="nav-button-bg"></span>
-                        <span class="relative flex items-center justify-center gap-2 font-semibold text-sm">
+                        <span id="navBtnContent"
+                            class="relative flex items-center justify-center gap-2 font-semibold text-sm">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                             </svg>
                             Start Navigation
+                        </span>
+                        <span id="navBtnLoader"
+                            class="hidden relative flex items-center justify-center gap-2 font-semibold text-sm">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
+                                fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            Sending...
                         </span>
                     </button>
                 </div>

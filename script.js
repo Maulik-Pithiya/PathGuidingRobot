@@ -142,6 +142,8 @@ function reconstructPath(parent, start, end) {
 const startSelect = document.getElementById('startNode');
 const endSelect = document.getElementById('endNode');
 const navigateBtn = document.getElementById('navigateBtn');
+const navBtnContent = document.getElementById('navBtnContent');
+const navBtnLoader = document.getElementById('navBtnLoader');
 const swapBtn = document.getElementById('swapBtn');
 const statusEmpty = document.getElementById('statusEmpty');
 const statusResult = document.getElementById('statusResult');
@@ -149,6 +151,20 @@ const statusError = document.getElementById('statusError');
 const pathDisplay = document.getElementById('pathDisplay');
 const errorMsg = document.getElementById('errorMsg');
 const locationGrid = document.getElementById('locationGrid');
+
+
+// --- Toggle button loading state ---
+function setNavButtonLoading(isLoading) {
+    if (isLoading) {
+        navigateBtn.disabled = true;
+        navBtnContent.classList.add('hidden');
+        navBtnLoader.classList.remove('hidden');
+    } else {
+        navigateBtn.disabled = false;
+        navBtnContent.classList.remove('hidden');
+        navBtnLoader.classList.add('hidden');
+    }
+}
 
 
 // --- Populate dropdown <option> elements ---
@@ -313,10 +329,14 @@ navigateBtn.addEventListener('click', function () {
         return;
     }
 
+    // Enter loading state
+    setNavButtonLoading(true);
+
     // Run BFS
     var path = bfs(campusMap, start, end);
 
     if (path === null) {
+        setNavButtonLoading(false);
         showStatus('error');
         errorMsg.textContent = 'No path found between ' + locationNames[start] + ' and ' + locationNames[end] + '.';
         updateMapVisualization(null);
@@ -390,11 +410,10 @@ function sendToFirebase(from, to, path) {
 
     // Check if Firebase is loaded (the module script runs after script.js)
     if (!window.firebaseReady) {
-        // Firebase not ready yet — update the banner to show waiting
         updateRobotStatusUI('pending');
         console.log('⏳ Firebase not ready yet, will send when ready...');
 
-        // Queue the write for when Firebase finishes loading
+        // Disable but don't re-enable until ready
         window.onFirebaseReady = function () {
             sendToFirebase(from, to, path);
         };
@@ -429,6 +448,10 @@ function sendToFirebase(from, to, path) {
         .catch(function (error) {
             console.error('❌ Firebase write error:', error);
             showToast('Failed to send command. Check connection.', 'error');
+        })
+        .finally(function () {
+            // Re-enable the button regardless of success or failure
+            setNavButtonLoading(false);
         });
 }
 
