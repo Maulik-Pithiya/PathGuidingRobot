@@ -266,7 +266,7 @@ function showToast(message, type) {
     toast.innerHTML =
         '<div class="toast-body toast-' + type + '">' +
         '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">' +
-        '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />' +
+        '<path d="M10.146 3.248a2 2 0 0 1 3.708 0A7.003 7.003 0 0 1 19 10v4.697l1.832 2.748A1 1 0 0 1 20 19h-4.535a3.501 3.501 0 0 1-6.93 0H4a1 1 0 0 1-.832-1.555L5 14.697V10c0-3.224 2.18-5.94 5.146-6.752zM10.586 19a1.5 1.5 0 0 0 2.829 0h-2.83zM12 5a5 5 0 0 0-5 5v5a1 1 0 0 1-.168.555L5.869 17H18.13l-.963-1.445A1 1 0 0 1 17 15v-5a5 5 0 0 0-5-5z"/>' +
         '</svg>' +
         message +
         '</div>';
@@ -525,12 +525,12 @@ function listenForRobotStatus() {
         var data = snapshot.val();
         if (!data || !data.status) return;
 
-        console.log('📡 Firebase status update:', data.status);
+        //console.log('📡 Firebase status update:', data.status);
 
         // Update timestamp display if available
         if (data.timestamp && robotLastUpdated) {
             var date = new Date(data.timestamp);
-            var dateString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            var dateString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
             robotLastUpdated.textContent = 'Updated: ' + dateString;
             robotLastUpdated.classList.remove('hidden');
         }
@@ -599,5 +599,5 @@ populateDropdowns();
 populateLocationGrid();
 showStatus('empty');
 
-console.log('🤖 RoboNav loaded. Campus map:', campusMap);
-console.log('📡 Firebase integration active. Commands will be sent to /navigation_command');
+//console.log('🤖 RoboNav loaded. Campus map:', campusMap);
+//console.log('📡 Firebase integration active. Commands will be sent to /navigation_command');
