@@ -73,10 +73,10 @@ const nodeCoords = {
 };
 
 const edgeSegments = {
-    'N3-N1': [ {x:350,y:160}, {x:580,y:160}, {x:580,y:60} ],
-    'N1-N3': [ {x:580,y:60}, {x:580,y:160}, {x:350,y:160} ],
-    'N3-N2': [ {x:350,y:160}, {x:350,y:60}, {x:460,y:60} ],
-    'N2-N3': [ {x:460,y:60}, {x:350,y:60}, {x:350,y:160} ]
+    'N3-N1': [{ x: 350, y: 160 }, { x: 580, y: 160 }, { x: 580, y: 60 }],
+    'N1-N3': [{ x: 580, y: 60 }, { x: 580, y: 160 }, { x: 350, y: 160 }],
+    'N3-N2': [{ x: 350, y: 160 }, { x: 350, y: 60 }, { x: 460, y: 60 }],
+    'N2-N3': [{ x: 460, y: 60 }, { x: 350, y: 60 }, { x: 350, y: 160 }]
 };
 
 function getTurnInstruction(prev, curr, next) {
@@ -84,17 +84,21 @@ function getTurnInstruction(prev, curr, next) {
         return edgeSegments[`${u}-${v}`] || [nodeCoords[u], nodeCoords[v]];
     }
     const inSeg = getSegment(prev, curr);
-    const inVec = { x: inSeg[inSeg.length - 1].x - inSeg[inSeg.length - 2].x, 
-                    y: inSeg[inSeg.length - 1].y - inSeg[inSeg.length - 2].y };
+    const inVec = {
+        x: inSeg[inSeg.length - 1].x - inSeg[inSeg.length - 2].x,
+        y: inSeg[inSeg.length - 1].y - inSeg[inSeg.length - 2].y
+    };
     const outSeg = getSegment(curr, next);
-    const outVec = { x: outSeg[1].x - outSeg[0].x, 
-                     y: outSeg[1].y - outSeg[0].y };
+    const outVec = {
+        x: outSeg[1].x - outSeg[0].x,
+        y: outSeg[1].y - outSeg[0].y
+    };
     const angle1 = Math.atan2(inVec.y, inVec.x);
     const angle2 = Math.atan2(outVec.y, outVec.x);
     const diff = (angle2 - angle1) * 180 / Math.PI;
     let normDiff = (diff + 360) % 360;
     if (normDiff > 180) normDiff -= 360;
-    
+
     // Check ranges
     if (normDiff > 20 && normDiff < 160) return 'Turn Right';
     if (normDiff < -20 && normDiff > -160) return 'Turn Left';
@@ -266,7 +270,7 @@ function showToast(message, type) {
     toast.innerHTML =
         '<div class="toast-body toast-' + type + '">' +
         '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">' +
-        '<path d="M10.146 3.248a2 2 0 0 1 3.708 0A7.003 7.003 0 0 1 19 10v4.697l1.832 2.748A1 1 0 0 1 20 19h-4.535a3.501 3.501 0 0 1-6.93 0H4a1 1 0 0 1-.832-1.555L5 14.697V10c0-3.224 2.18-5.94 5.146-6.752zM10.586 19a1.5 1.5 0 0 0 2.829 0h-2.83zM12 5a5 5 0 0 0-5 5v5a1 1 0 0 1-.168.555L5.869 17H18.13l-.963-1.445A1 1 0 0 1 17 15v-5a5 5 0 0 0-5-5z"/>' +
+        '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />' +
         '</svg>' +
         message +
         '</div>';
@@ -332,7 +336,7 @@ function displayPath(path) {
         } else if (i === path.length - 1) {
             dotClass = 'dot-end'; tagClass = 'tag-end'; tagText = 'Destination';
         } else {
-            dotClass = 'dot-mid'; tagClass = 'tag-via'; 
+            dotClass = 'dot-mid'; tagClass = 'tag-via';
             tagText = getTurnInstruction(path[i - 1], path[i], path[i + 1]);
         }
 
@@ -471,15 +475,41 @@ function sendToFirebase(from, to, path) {
     var ref = window.firebaseRef;
     var set = window.firebaseSet;
 
+    // Build the step-by-step direction string from the BFS path.
+    // Each turn instruction is mapped to an uppercase keyword.
+    // The result is stored as a single comma-separated string in Firebase.
+    // Example path ['N1','N3','N4','N5'] → "FORWARD,LEFT,STOP"
+    var directionMap = {
+        'Go Straight': 'Forward',
+        'Turn Left': 'Left',
+        'Turn Right': 'Right',
+        'U-Turn': 'UTURN'
+    };
+    var directionParts = [];
+    for (var i = 0; i < path.length; i++) {
+        if (i === path.length - 1) {
+            // Last node — robot stops here
+            directionParts.push('Stop');
+        } else if (i === 0) {
+            // First segment: no incoming vector, go straight
+            directionParts.push('Forward');
+        } else {
+            // Intermediate node — compute turn from previous → current → next
+            var raw = getTurnInstruction(path[i - 1], path[i], path[i + 1]);
+            directionParts.push(directionMap[raw] || 'Forward');
+        }
+    }
+
     // Build the command object
-    // The robot only needs `from` and `to`, but we include `path`
-    // and `status` for the website UI to track progress.
+    // `directions` is stored as a plain comma-separated string (not an array)
+    // e.g. "FORWARD,LEFT,STOP"
     var command = {
-        from: from,                   // e.g. "A"
-        to: to,                     // e.g. "E"
-        path: path.join(','),         // e.g. "A,C,F,E"
-        status: 'pending',              // website sets → robot updates
-        timestamp: Date.now()              // Unix timestamp in ms
+        from: from,                              // e.g. "N1"
+        to: to,                                  // e.g. "N5"
+        path: path.join(','),                    // e.g. "N1,N3,N4,N5"
+        directions: directionParts.join(','),    // e.g. "FORWARD,LEFT,STOP"
+        status: 'pending',                       // website sets → robot updates
+        timestamp: Date.now()                    // Unix timestamp in ms
     };
 
     // Write to /navigation_command in Firebase Realtime Database
@@ -525,12 +555,12 @@ function listenForRobotStatus() {
         var data = snapshot.val();
         if (!data || !data.status) return;
 
-        //console.log('📡 Firebase status update:', data.status);
+        console.log('📡 Firebase status update:', data.status);
 
         // Update timestamp display if available
         if (data.timestamp && robotLastUpdated) {
             var date = new Date(data.timestamp);
-            var dateString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
+            var dateString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             robotLastUpdated.textContent = 'Updated: ' + dateString;
             robotLastUpdated.classList.remove('hidden');
         }
@@ -591,6 +621,7 @@ function updateRobotStatusUI(status) {
 }
 
 
+
 // =====================================================================
 // SECTION 5: INITIALISATION
 // =====================================================================
@@ -599,5 +630,89 @@ populateDropdowns();
 populateLocationGrid();
 showStatus('empty');
 
-//console.log('🤖 RoboNav loaded. Campus map:', campusMap);
-//console.log('📡 Firebase integration active. Commands will be sent to /navigation_command');
+console.log('🤖 RoboNav loaded. Campus map:', campusMap);
+console.log('📡 Firebase integration active. Commands will be sent to /navigation_command');
+
+
+// =====================================================================
+// SECTION 6: ESP32 CONNECTION STATUS WATCHER
+// =====================================================================
+//
+// The ESP32 periodically writes  { connectionStatus: "Online" }
+// to the Firebase path  /esp32/connectionStatus
+//
+// This listener:
+//   • Marks the header badge ✅ ONLINE  when "Online" is received
+//   • Starts a 10-second watchdog timer on every ping
+//   • If no ping arrives within 10 s  → marks ❌ OFFLINE
+//   • Recovers automatically the moment pings resume
+// =====================================================================
+
+var connectionStatusDot = document.getElementById('connectionStatusBadge');
+var connectionStatusLabel = document.getElementById('connectionStatusLabel');
+var offlineTimer = null;        // watchdog timeout handle
+var OFFLINE_TIMEOUT_MS = 10000;       // 10 seconds with no ping → offline
+
+// Set the header badge to ONLINE (green pulse)
+function setConnectionOnline() {
+    if (!connectionStatusDot || !connectionStatusLabel) return;
+    connectionStatusDot.classList.remove('offline');   // green + pulse
+    connectionStatusLabel.textContent = 'Online';
+}
+
+// Set the header badge to OFFLINE (red, static)
+function setConnectionOffline() {
+    if (!connectionStatusDot || !connectionStatusLabel) return;
+    connectionStatusDot.classList.add('offline');      // red, no pulse
+    connectionStatusLabel.textContent = 'Offline';
+}
+
+// Start watching; called once Firebase is ready
+function listenForESP32Connection() {
+    if (!window.firebaseReady) return;
+
+    var db = window.firebaseDB;
+    var ref = window.firebaseRef;
+    var onValue = window.firebaseOnValue;
+
+    // Start as offline until first ping arrives
+    setConnectionOffline();
+
+    // Listen to /navigation_command/connectionStatus  (the path the ESP32 writes to)
+    onValue(ref(db, 'navigation_command/connectionStatus'), function (snapshot) {
+        var value = snapshot.val();
+
+        if (value === 'Online') {
+            // ✅ Ping received — mark online and reset the watchdog
+            setConnectionOnline();
+
+            clearTimeout(offlineTimer);
+            offlineTimer = setTimeout(function () {
+                // No ping for OFFLINE_TIMEOUT_MS → mark offline
+                setConnectionOffline();
+                console.warn('⚠️ ESP32 connection timed out — marked Offline');
+            }, OFFLINE_TIMEOUT_MS);
+
+            console.log('📶 ESP32 ping received — Online');
+        } else {
+            // Unexpected value or null → treat as offline
+            setConnectionOffline();
+            clearTimeout(offlineTimer);
+        }
+    });
+}
+
+// Hook into the Firebase-ready callback so the watcher starts
+// regardless of whether Firebase loads before or after this script
+(function () {
+    var _orig = window.onFirebaseReady;
+    window.onFirebaseReady = function () {
+        if (typeof _orig === 'function') _orig();
+        listenForESP32Connection();
+    };
+
+    // If Firebase is already ready by the time this runs, start immediately
+    if (window.firebaseReady) {
+        listenForESP32Connection();
+    }
+})();
