@@ -678,8 +678,9 @@ function listenForESP32Connection() {
     // Start as offline until first ping arrives
     setConnectionOffline();
 
-    // Listen to /navigation_command/connectionStatus  (the path the ESP32 writes to)
-    onValue(ref(db, 'navigation_command/connectionStatus'), function (snapshot) {
+    // Listen to /esp32/connectionStatus — a SEPARATE path from /navigation_command
+    // so that sendToFirebase()'s set() call never overwrites it and triggers false offline.
+    onValue(ref(db, 'esp32/connectionStatus'), function (snapshot) {
         var value = snapshot.val();
 
         if (value === 'Online') {
