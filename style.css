@@ -2,7 +2,7 @@
  * style.css — Premium dark theme for RoboNav Dashboard
  * ===================================================================== */
 
- *,
+*,
 *::before,
 *::after {
     box-sizing: border-box;
@@ -22,13 +22,6 @@ body {
     margin: 0;
 }
 
-::-webkit-scrollbar {
-    width: 5px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
 
 ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.06);
@@ -173,12 +166,20 @@ body {
 }
 
 .status-dot {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: #10b981;
     box-shadow: 0 0 8px #10b981;
     animation: pulse 2s ease-in-out infinite;
+    transition: background .4s, box-shadow .4s;
+}
+
+.status-dot.offline {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+    animation: none;
+    opacity: 1;
 }
 
 @keyframes pulse {
