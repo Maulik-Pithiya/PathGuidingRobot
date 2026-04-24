@@ -361,7 +361,81 @@ function showStatus(section) {
 }
 
 
-// --- Main navigation handler ---
+// --- Modal DOM references ---
+var visitorModal = document.getElementById('visitorModal');
+var modalBackdrop = document.getElementById('modalBackdrop');
+var modalCard = document.getElementById('modalCard');
+var visitorNameInput = document.getElementById('visitorNameInput');
+var visitorNameError = document.getElementById('visitorNameError');
+var modalCancelBtn = document.getElementById('modalCancelBtn');
+var modalStartBtn = document.getElementById('modalStartBtn');
+
+
+// --- Open the visitor modal with animation ---
+function openVisitorModal() {
+    visitorModal.classList.remove('hidden');
+    visitorModal.classList.add('flex');
+    visitorNameInput.value = '';
+    visitorNameError.classList.add('hidden');
+    visitorNameInput.classList.remove('border-red-500/50');
+
+    // Trigger enter animation on next frame
+    requestAnimationFrame(function () {
+        modalBackdrop.classList.remove('opacity-0');
+        modalBackdrop.classList.add('opacity-100');
+        modalCard.classList.remove('scale-95', 'opacity-0');
+        modalCard.classList.add('scale-100', 'opacity-100');
+    });
+
+    // Focus the input after animation
+    setTimeout(function () { visitorNameInput.focus(); }, 200);
+}
+
+
+// --- Close the visitor modal with animation ---
+function closeVisitorModal() {
+    modalBackdrop.classList.remove('opacity-100');
+    modalBackdrop.classList.add('opacity-0');
+    modalCard.classList.remove('scale-100', 'opacity-100');
+    modalCard.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(function () {
+        visitorModal.classList.remove('flex');
+        visitorModal.classList.add('hidden');
+    }, 300);
+}
+
+
+// --- Modal Cancel button ---
+modalCancelBtn.addEventListener('click', function () {
+    closeVisitorModal();
+});
+
+
+// --- Close modal on backdrop click ---
+modalBackdrop.addEventListener('click', function () {
+    closeVisitorModal();
+});
+
+
+// --- Close modal on Escape key ---
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !visitorModal.classList.contains('hidden')) {
+        closeVisitorModal();
+    }
+});
+
+
+// --- Clear validation error on input ---
+visitorNameInput.addEventListener('input', function () {
+    if (visitorNameInput.value.trim().length > 0) {
+        visitorNameError.classList.add('hidden');
+        visitorNameInput.classList.remove('border-red-500/50');
+    }
+});
+
+
+// --- Main navigation handler — now opens modal first ---
 navigateBtn.addEventListener('click', function () {
     var start = startSelect.value;
     var end = endSelect.value;
@@ -374,6 +448,40 @@ navigateBtn.addEventListener('click', function () {
         showToast('Start and destination cannot be the same.', 'error');
         return;
     }
+
+    // Open the modal to collect visitor name
+    openVisitorModal();
+});
+
+
+// --- Modal Start button — runs the actual navigation ---
+modalStartBtn.addEventListener('click', function () {
+    handleModalStart();
+});
+
+// --- Also handle Enter key inside the input ---
+visitorNameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+        handleModalStart();
+    }
+});
+
+function handleModalStart() {
+    var visitorName = visitorNameInput.value.trim();
+
+    // Validate
+    if (!visitorName) {
+        visitorNameError.classList.remove('hidden');
+        visitorNameInput.classList.add('border-red-500/50');
+        visitorNameInput.focus();
+        return;
+    }
+
+    // Close modal
+    closeVisitorModal();
+
+    var start = startSelect.value;
+    var end = endSelect.value;
 
     // Enter loading state
     setNavButtonLoading(true);
@@ -394,16 +502,59 @@ navigateBtn.addEventListener('click', function () {
     displayPath(path);
     updateMapVisualization(path);
 
-    // --- FIREBASE: Send navigation command to the robot ---
-    // The data structure written to Firebase:
-    //   /navigation_command
-    //     from:    "A"           ← starting node
-    //     to:      "E"           ← destination node
-    //     path:    "A,C,F,E"     ← full shortest path (comma-separated)
-    //     status:  "pending"     ← website sets this; robot updates it
-    //     timestamp: 1710501234  ← when the command was sent
-    sendToFirebase(start, end, path);
-});
+    // --- FIREBASE: Log visitor entry first, then send navigation command ---
+    // Uses push() so each entry gets a unique key under /visitors
+    //   /visitors/<unique-key>
+    //     name:     "John"           ← visitor's name
+    //     from:     "N1"             ← start node id
+    //     to:       "N5"             ← destination node id
+    //     fromName: "MTIN"           ← building name
+    //     toName:   "DEPSTAR"        ← building name
+    //     path:     ["N1","N3","N4","N5"]  ← array of route nodes
+
+    if (!window.firebaseReady) {
+        // Firebase not loaded yet — queue for when it's ready
+        updateRobotStatusUI('pending');
+        window.onFirebaseReady = function () {
+            pushVisitorAndNavigate(visitorName, start, end, path);
+        };
+        return;
+    }
+
+    pushVisitorAndNavigate(visitorName, start, end, path);
+}
+
+
+// --- Log visitor to Firestore, then send navigation command ---
+function pushVisitorAndNavigate(visitorName, start, end, path) {
+    var firestore = window.firestoreDB;
+    var collection = window.firestoreCollection;
+    var addDoc = window.firestoreAddDoc;
+    var serverTimestamp = window.firestoreServerTimestamp;
+
+    var visitorEntry = {
+        name: visitorName,
+        from: start,
+        to: end,
+        fromName: locationNames[start],
+        toName: locationNames[end],
+        path: path,                      // stored as array, e.g. ["N1","N3","N4","N5"]
+        timestamp: serverTimestamp()      // Firebase server timestamp
+    };
+
+    // addDoc() creates a new document with auto-generated ID in /visitors
+    addDoc(collection(firestore, 'visitors'), visitorEntry)
+        .then(function (docRef) {
+            console.log('✅ Visitor logged to Firestore (ID: ' + docRef.id + '):', visitorEntry);
+            // Only proceed with navigation command after successful log
+            sendToFirebase(start, end, path, visitorName);
+        })
+        .catch(function (error) {
+            console.error('❌ Failed to log visitor:', error);
+            showToast('Failed to log visitor. Check connection.', 'error');
+            setNavButtonLoading(false);
+        });
+}
 
 
 // =====================================================================
@@ -453,7 +604,7 @@ var robotLastUpdated = document.getElementById('robotLastUpdated');
 // @param {string} to    - destination node key, e.g. 'E'
 // @param {string[]} path - computed BFS path, e.g. ['A','C','F','E']
 
-function sendToFirebase(from, to, path) {
+function sendToFirebase(from, to, path, visitorName) {
 
     // Check if Firebase is loaded (the module script runs after script.js)
     if (!window.firebaseReady) {
@@ -462,7 +613,7 @@ function sendToFirebase(from, to, path) {
 
         // Disable but don't re-enable until ready
         window.onFirebaseReady = function () {
-            sendToFirebase(from, to, path);
+            sendToFirebase(from, to, path, visitorName);
         };
         return;
     }
@@ -504,6 +655,7 @@ function sendToFirebase(from, to, path) {
         to: to,                                  // e.g. "N5"
         path: path.join(','),                    // e.g. "N1,N3,N4,N5"
         directions: directionParts.join(','),    // e.g. "FORWARD,LEFT,STOP"
+        visitor: visitorName || '',               // visitor's name
         status: 'pending',                       // website sets → robot updates
         timestamp: Date.now()                    // Unix timestamp in ms
     };

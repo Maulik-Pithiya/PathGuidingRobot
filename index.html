@@ -79,7 +79,7 @@
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
         <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Robot Navigation Dashboard</h2>
         <p class="mt-2 text-base text-white/50 max-w-xl">Select your current location and destination to calculate the
-            shortest path using <span class="text-blue-400">BFS</span>. The route will be highlighted on the campus
+            path using <span class="text-blue-400">BFS</span>. The route will be highlighted on the campus
             map.</p>
     </section>
 
@@ -400,6 +400,87 @@
 
     </main>
 
+    <!-- ====================================================================
+         MODAL — Visitor Name Input
+         ==================================================================== -->
+    <div id="visitorModal" class="fixed inset-0 z-[999] hidden items-center justify-center">
+        <!-- Backdrop -->
+        <div id="modalBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
+
+        <!-- Modal Card -->
+        <div id="modalCard" class="relative w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0
+                    rounded-2xl border border-white/[0.08] bg-[#12121a]/95 backdrop-blur-xl
+                    shadow-[0_25px_60px_rgba(0,0,0,0.5),0_0_80px_rgba(59,130,246,0.08)]
+                    overflow-hidden">
+
+            <!-- Gradient accent bar at top -->
+            <div class="h-[2px] w-full bg-gradient-to-r from-blue-500 via-violet-500 to-blue-500"></div>
+
+            <div class="p-6 sm:p-8">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-white/[0.06] flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white tracking-tight">Welcome, Visitor</h3>
+                        <p class="text-sm text-white/40">Enter your name to start navigation</p>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="mb-2">
+                    <label for="visitorNameInput" class="block text-[13px] font-medium text-white/50 mb-2">Your Name</label>
+                    <div class="relative">
+                        <input type="text" id="visitorNameInput" placeholder="e.g. John Doe" autocomplete="off"
+                            class="w-full bg-white/[0.04] text-white border border-white/[0.08] rounded-xl px-4 py-3.5 text-[15px] font-medium
+                                   placeholder:text-white/20 outline-none
+                                   transition-all duration-300
+                                   focus:bg-white/[0.06] focus:border-blue-500/50
+                                   focus:shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_0_20px_rgba(59,130,246,0.05)]" />
+                    </div>
+                    <!-- Validation error -->
+                    <p id="visitorNameError" class="mt-2 text-[13px] font-medium text-red-400/80 hidden flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                        </svg>
+                        <span>Please enter your name to continue</span>
+                    </p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex items-center gap-3 mt-6">
+                    <button id="modalCancelBtn"
+                        class="flex-1 px-5 py-3 rounded-xl text-sm font-semibold
+                               bg-white/[0.04] border border-white/[0.08] text-white/60
+                               hover:bg-white/[0.07] hover:border-white/[0.12] hover:text-white/80
+                               active:scale-[0.98] transition-all duration-200 cursor-pointer">
+                        Cancel
+                    </button>
+                    <button id="modalStartBtn"
+                        class="flex-1 px-5 py-3 rounded-xl text-sm font-semibold text-white
+                               bg-gradient-to-r from-blue-500 to-violet-600
+                               hover:shadow-[0_8px_30px_rgba(59,130,246,0.25)]
+                               hover:-translate-y-[1px]
+                               active:scale-[0.98] transition-all duration-200 cursor-pointer
+                               border-0">
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                            </svg>
+                            Start
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <footer class="border-t border-white/[0.03] mt-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center">
@@ -411,11 +492,13 @@
 
     <script src="script.js"></script>
     <script type="module">
-        // ===== FIREBASE SETUP =====
-        // Import Firebase App + Realtime Database + Analytics
+         // Import Firebase App + Realtime Database + Analytics
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+        import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        // Import Firestore — used only for visitor logging
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // Firebase configuration
         const firebaseConfig = {
@@ -433,13 +516,23 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getDatabase(app);
+        const firestore = getFirestore(app);
 
         // ===== EXPOSE Firebase functions to script.js =====
         // script.js is a regular (non-module) script, so we put these on window
+
+        // Realtime Database (robot communication)
         window.firebaseDB = db;
         window.firebaseRef = ref;
         window.firebaseSet = set;
+        window.firebasePush = push;
         window.firebaseOnValue = onValue;
+
+        // Firestore (visitor logging)
+        window.firestoreDB = firestore;
+        window.firestoreCollection = collection;
+        window.firestoreAddDoc = addDoc;
+        window.firestoreServerTimestamp = serverTimestamp;
 
         // Signal that Firebase is ready — script.js will pick this up
         window.firebaseReady = true;

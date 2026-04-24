@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — RoboNav Analytics</title>
+    <link rel="icon" href="favicon.png">
+    <meta name="description" content="Admin analytics dashboard for RoboNav visitor tracking.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Tailwind CSS v3 via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts — Inter + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+    <!-- Tailwind config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- Reuse existing styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* Admin-specific overrides */
+        .stat-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            transition: border-color .3s, box-shadow .3s, transform .3s;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .admin-table thead th {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .admin-table thead th:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        .admin-table thead th:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        .admin-table tbody td {
+            padding: 14px 16px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.75);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .admin-table tbody tr {
+            transition: background .2s;
+        }
+
+        .admin-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .admin-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .path-badge {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.1);
+            color: rgba(165, 180, 252, 0.8);
+            margin: 1px 2px;
+        }
+
+        .filter-select {
+            appearance: none;
+            background: rgba(255, 255, 255, 0.04);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px 36px 10px 14px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: all .3s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='rgba(255,255,255,0.25)' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .filter-select:hover {
+            background-color: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-select:focus {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filter-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.03) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .fade-in {
+            animation: adminFadeIn .5s ease forwards;
+        }
+
+        @keyframes adminFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BACKGROUND — animated gradient mesh -->
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-[#0a0a0f]">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        <div class="noise-overlay"></div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-50 bg-[#0d0d14]/90 border-b border-white/[0.04]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="logo-icon">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.8"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-base font-semibold text-white tracking-tight">RoboNav</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span
+                    class="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-violet-500/15 text-violet-400">Admin</span>
+                <a href="index.html"
+                    class="text-sm text-white/40 hover:text-white/70 transition-colors font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Visitor Analytics</h2>
+        <p class="mt-2 text-base text-white/50 max-w-xl">Overview of all navigation events logged by
+            <span class="text-violet-400">Firestore</span>.
+        </p>
+    </section>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+
+        <!-- FILTERS BAR -->
+        <div class="card mb-5">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="card-icon bg-violet-500/10">
+                        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                        </svg>
+                    </div>
+                    <span class="text-[13px] font-semibold text-white/55 uppercase tracking-wider">Filters</span>
+                </div>
+
+                <select id="filterDestination" class="filter-select">
+                    <option value="">All Destinations</option>
+                </select>
+
+                <select id="filterSource" class="filter-select">
+                    <option value="">All Sources</option>
+                </select>
+
+                <button id="resetFiltersBtn"
+                    class="px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-white/[0.04] border border-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.07] hover:border-white/[0.1] transition-all cursor-pointer">
+                    Reset
+                </button>
+
+                <div class="ml-auto text-xs text-white/30 font-mono" id="lastRefreshed">—</div>
+            </div>
+        </div>
+
+        <!-- STATS CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
+
+            <!-- Total Navigations -->
+            <div class="stat-card" id="statTotalNav">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                        </svg>
+                    </div>
+                    <span class="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Total
+                        Navigations</span>
+                </div>
+                <div class="text-3xl font-bold text-white font-mono" id="valTotalNav">
+                    <div class="loading-skeleton h-9 w-20"></div>
+                </div>
+            </div>
+
+            <!-- Unique Visitors -->
+            <div class="stat-card" id="statUniqueVisitors">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                        </svg>
+                    </div>
+                    <span class="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Unique
+                        Visitors</span>
+                </div>
+                <div class="text-3xl font-bold text-white font-mono" id="valUniqueVisitors">
+                    <div class="loading-skeleton h-9 w-16"></div>
+                </div>
+            </div>
+
+            <!-- Most Visited Destination -->
+            <div class="stat-card" id="statTopDest">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                        </svg>
+                    </div>
+                    <span class="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Top
+                        Destination</span>
+                </div>
+                <div class="text-xl font-bold text-white" id="valTopDest">
+                    <div class="loading-skeleton h-7 w-28"></div>
+                </div>
+                <div class="text-xs text-white/30 mt-1 font-mono" id="valTopDestCount"></div>
+            </div>
+
+            <!-- Most Popular Route -->
+            <div class="stat-card" id="statTopRoute">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                        </svg>
+                    </div>
+                    <span class="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Top Route</span>
+                </div>
+                <div class="text-lg font-bold text-white" id="valTopRoute">
+                    <div class="loading-skeleton h-7 w-36"></div>
+                </div>
+                <div class="text-xs text-white/30 mt-1 font-mono" id="valTopRouteCount"></div>
+            </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+
+            <!-- Bar chart: visits per building -->
+            <div class="chart-container">
+                <div class="card-header">
+                    <div class="card-icon bg-blue-500/10">
+                        <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                        </svg>
+                    </div>
+                    <span>Visits per Building</span>
+                </div>
+                <div class="relative" style="height: 280px;">
+                    <canvas id="chartBuildings"></canvas>
+                </div>
+            </div>
+
+            <!-- Bar chart: top 5 routes -->
+            <div class="chart-container">
+                <div class="card-header">
+                    <div class="card-icon bg-violet-500/10">
+                        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+                        </svg>
+                    </div>
+                    <span>Top 5 Routes</span>
+                </div>
+                <div class="relative" style="height: 280px;">
+                    <canvas id="chartRoutes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT VISITORS TABLE -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon bg-emerald-500/10">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                    </svg>
+                </div>
+                <span>Recent Visitors</span>
+                <span class="ml-2 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/[0.04] text-white/30"
+                    id="tableCount">—</span>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-white/[0.04]">
+                <table class="admin-table" id="visitorsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">#</th>
+                            <th style="width: 20%">Name</th>
+                            <th style="width: 18%">From</th>
+                            <th style="width: 18%">To</th>
+                            <th style="width: 30%">Path</th>
+                            <th style="width: 9%">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitorsTableBody">
+                        <!-- Loading skeleton rows -->
+                        <tr>
+                            <td colspan="6" class="text-center py-12">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="loading-skeleton h-4 w-48"></div>
+                                    <div class="loading-skeleton h-4 w-32"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/[0.03] mt-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center">
+            <p class="text-xs text-white/25 font-medium">&copy; 2026 RoboNav &mdash; Admin Analytics Dashboard</p>
+        </div>
+    </footer>
+
+    <script src="admin.js"></script>
+    <script type="module">
+        // ===== FIREBASE SETUP (same config, adds Firestore) =====
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLC9FBJeIkl1xPtSH5o-lNZhevqhyXM-A",
+            authDomain: "pathguidedrobot.firebaseapp.com",
+            databaseURL: "https://pathguidedrobot-default-rtdb.firebaseio.com",
+            projectId: "pathguidedrobot",
+            storageBucket: "pathguidedrobot.firebasestorage.app",
+            messagingSenderId: "471656406486",
+            appId: "1:471656406486:web:c525b14a974bfb93a59877",
+            measurementId: "G-RYQ8BC6KQC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const firestore = getFirestore(app);
+
+        // Expose to admin.js
+        window.firestoreDB = firestore;
+        window.firestoreCollection = collection;
+        window.firestoreGetDocs = getDocs;
+        window.firestoreQuery = query;
+        window.firestoreOrderBy = orderBy;
+        window.firestoreLimit = limit;
+
+        // Signal ready
+        window.firebaseReady = true;
+        if (typeof window.onFirebaseReady === 'function') {
+            window.onFirebaseReady();
+        }
+    </script>
+</body>
+
+</html>
