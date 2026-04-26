@@ -9,7 +9,7 @@
 // --- DOM References ---
 var valTotalNav = document.getElementById('valTotalNav');
 var valUniqueVisitors = document.getElementById('valUniqueVisitors');
-var valRunTime = document.getElementById('valRunTime');
+
 var valBusiestSrc = document.getElementById('valBusiestSrc');
 var valTopDest = document.getElementById('valTopDest');
 var valTopDestCount = document.getElementById('valTopDestCount');
@@ -192,30 +192,6 @@ function renderStats(visitors) {
         valTopDestCount.textContent = '';
     }
 
-    // Total run time (duration from first to last navigation)
-    var oldest = null;
-    var newest = null;
-    visitors.forEach(function (v) {
-        if (v.timestamp && v.timestamp.toDate) {
-            var d = v.timestamp.toDate();
-            if (!oldest || d < oldest) oldest = d;
-            if (!newest || d > newest) newest = d;
-        }
-    });
-    if (oldest && newest && oldest < newest) {
-        var diffMs = newest - oldest;
-        var totalSec = Math.floor(diffMs / 1000);
-        var days = Math.floor(totalSec / 86400);
-        var hrs = Math.floor((totalSec % 86400) / 3600);
-        var mins = Math.floor((totalSec % 3600) / 60);
-        var parts = [];
-        if (days > 0) parts.push(days + 'd');
-        if (hrs > 0) parts.push(hrs + 'h');
-        parts.push(mins + 'm');
-        valRunTime.textContent = parts.join(' ');
-    } else {
-        valRunTime.textContent = '—';
-    }
 
     // Busiest source (most common fromName)
     var srcCounts = {};
