@@ -871,3 +871,19 @@ function listenForESP32Connection() {
         listenForESP32Connection();
     }
 })();
+
+
+const lenis = new Lenis({
+    duration: 0,
+    lerp: 0.2,
+    smoothWheel: true,
+    // --- Mobile Touch Settings ---
+
+})
+
+function raf(time) {
+    lenis.raf(time)
+    requestAnimationFrame(raf)
+}
+
+requestAnimationFrame(raf)
