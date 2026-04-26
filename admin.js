@@ -24,6 +24,7 @@ var tableSearch = document.getElementById('tableSearch');
 var filterDestination = document.getElementById('filterDestination');
 var filterSource = document.getElementById('filterSource');
 var resetFiltersBtn = document.getElementById('resetFiltersBtn');
+var exportCsvBtn = document.getElementById('exportCsvBtn');
 
 // --- Chart instances (so we can destroy and recreate on filter) ---
 var buildingsChart = null;
@@ -495,7 +496,7 @@ function renderTable(visitors, searchTerm) {
     }
 
     // Show last 25 entries
-    var recent = filtered.slice(0, 25);
+    var recent = filtered.slice(0, 10);
 
     tableCount.textContent = recent.length + ' of ' + visitors.length;
 
@@ -519,8 +520,8 @@ function renderTable(visitors, searchTerm) {
         var timeStr = '—';
         if (v.timestamp && v.timestamp.toDate) {
             var d = v.timestamp.toDate();
-            timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + 
-                '<span class="block text-[10px] text-white/30 uppercase tracking-widest mt-0.5">' + 
+            timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+                '<span class="block text-[10px] text-white/30 uppercase tracking-widest mt-0.5">' +
                 d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' }) + '</span>';
         }
 
@@ -553,6 +554,44 @@ if (tableSearch) {
     });
 }
 
+// --- Export CSV Handler ---
+if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', function () {
+        var dataToExport = currentFilteredVisitors || visitors;
+        if (!dataToExport || dataToExport.length === 0) {
+            alert("No data available to export.");
+            return;
+        }
+
+        var csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Name,From,To,Path,Date,Time\r\n";
+
+        dataToExport.forEach(function (v) {
+            var name = v.name ? '"' + v.name.replace(/"/g, '""') + '"' : "";
+            var from = (v.fromName || v.from || "").replace(/,/g, " - ");
+            var to = (v.toName || v.to || "").replace(/,/g, " - ");
+            var path = (v.path && Array.isArray(v.path)) ? v.path.join(" -> ") : "";
+            var dateStr = "";
+            var timeStr = "";
+            if (v.timestamp && v.timestamp.toDate) {
+                var d = v.timestamp.toDate();
+                dateStr = d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' }).replace(/,/g, "");
+                timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            var row = [name, from, to, path, dateStr, timeStr].join(",");
+            csvContent += row + "\r\n";
+        });
+
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        var datePrefix = new Date().toISOString().split('T')[0];
+        link.setAttribute("download", "robonav_visitors_" + datePrefix + ".csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
 
 // =====================================================================
 // SECTION 7: INITIALISATION
