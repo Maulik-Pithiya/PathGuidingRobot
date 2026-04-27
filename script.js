@@ -40,7 +40,7 @@ const campusMap = {
 const locationNames = {
     'N1': 'MTIN',
     'N2': 'CMPICA',
-    'N3': 'PDPIAS Junction',
+    'N3': 'PDPIAS',
     'N4': 'Center',
     'N5': 'DEPSTAR',
     'N6': 'CSPIT',
