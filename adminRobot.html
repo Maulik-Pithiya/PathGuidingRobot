@@ -240,14 +240,14 @@
                     </svg></div>
                 <span>Most Popular Routes</span>
             </div>
-            <div class="max-w-4xl mx-auto">
-                <div class="relative" style="height:320px"><canvas id="chartRoutes"></canvas></div>
+            <div class="w-full">
+                <div class="bar-chart-wrapper"><canvas id="chartRoutes"></canvas></div>
             </div>
         </div>
 
         <!-- SECTION 5: RECENT VISITORS TABLE -->
         <div class="card">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div class="card-header mb-0">
                     <div class="card-icon bg-emerald-500/10"><svg class="w-3.5 h-3.5 text-emerald-400" fill="none"
                             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -260,7 +260,7 @@
                         id="tableCount">—</span>
                 </div>
 
-                <div class="flex gap-5">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
 
                     <div class="relative w-full sm:w-64">
                         <svg class="w-4 h-4 text-white/25 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -270,11 +270,10 @@
                         </svg>
                         <input type="text" id="tableSearch" class="search-input"
                             placeholder="Search by visitor name...">
-
                     </div>
 
                     <button id="exportCsvBtn"
-                        class="px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer flex items-center gap-2">
+                        class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -282,7 +281,6 @@
                         Export CSV
                     </button>
                 </div>
-
 
             </div>
             <div class="overflow-x-auto rounded-xl border border-white/[0.04]">

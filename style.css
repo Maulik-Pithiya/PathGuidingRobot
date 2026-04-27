@@ -761,6 +761,21 @@ body {
     100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Responsive bar chart wrapper */
+.bar-chart-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 240px;
+    height: clamp(240px, 40vw, 380px);
+}
+
+@media (max-width: 480px) {
+    .bar-chart-wrapper {
+        min-height: 200px;
+        height: 200px;
+    }
+}
+
 /* Pie chart legend dot */
 .legend-dot {
     width: 10px;

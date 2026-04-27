@@ -310,8 +310,15 @@ var chartDefaults = {
             grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
             ticks: {
                 color: 'rgba(255,255,255,0.6)',
-                font: { family: 'Inter', size: 13, weight: '600' },
-                maxRotation: 30,
+                font: { family: 'Inter', size: 11, weight: '600' },
+                maxRotation: 45,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 5,
+                callback: function(value, index, ticks) {
+                    var label = this.getLabelForValue(value);
+                    return label && label.length > 18 ? label.substring(0, 16) + '…' : label;
+                }
             },
             border: { display: false },
         },
@@ -363,7 +370,7 @@ function renderBuildingsChart(visitors) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: { top: 30, bottom: 30, left: 20, right: 20 }
+                padding: { top: 50, bottom: 50, left: 20, right: 20 }
             },
             plugins: {
                 legend: { display: false },
@@ -386,7 +393,7 @@ function renderBuildingsChart(visitors) {
                 },
                 datalabels: {
                     color: 'rgba(255,255,255,0.85)',
-                    font: { family: 'Inter', size: 10, weight: '600' },
+                    font: { family: 'Inter', size: 12, weight: '600' },
                     formatter: function (value, context) {
                         var pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
                         var name = labels[context.dataIndex];
@@ -495,7 +502,7 @@ function renderTable(visitors, searchTerm) {
         });
     }
 
-    // Show last 25 entries
+    // Show last 10 entries
     var recent = filtered.slice(0, 10);
 
     tableCount.textContent = recent.length + ' of ' + visitors.length;
@@ -539,7 +546,7 @@ function renderTable(visitors, searchTerm) {
             '<span class="text-white/70">' + (v.toName || v.to || '—') + '</span>' +
             '<span class="block text-[11px] text-white/25 font-mono">' + (v.to || '') + '</span>' +
             '</td>' +
-            '<td class="text-xs text-white/35 font-mono whitespace-nowrap">' + timeStr + '</td>' +
+            '<td class="text-xs text-white/35 whitespace-nowrap">' + timeStr + '</td>' +
             '</tr>';
     });
 
